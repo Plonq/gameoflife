@@ -1,0 +1,9 @@
+.wrapper {
+    height: 100%;
+    display: grid;
+}
+
+.canvas {
+    border: 1px solid grey;
+    margin: auto;
+}
