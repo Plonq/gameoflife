@@ -84,6 +84,15 @@ export const GameOfLife = () => {
   const currentFrameRef = useRef<number>(0);
   const previousFrameRef = useRef<number>(0);
 
+  let gridBgColor = "#fff";
+  let gridLineColor = "#ddd";
+  let gridTileColor = "#000";
+  if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+    gridBgColor = "#222";
+    gridLineColor = "#444";
+    gridTileColor = "#ddd";
+  }
+
   // Game state
   const [tps, setTps] = useState<number>(24);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -131,11 +140,11 @@ export const GameOfLife = () => {
     const { width, height } = context.canvas;
 
     // Clear canvas
-    context.fillStyle = "#ffffff";
+    context.fillStyle = gridBgColor;
     context.fillRect(0, 0, width, height);
 
     // Draw tiles
-    context.fillStyle = "#000000";
+    context.fillStyle = gridTileColor;
     for (let entry of tiles.entries()) {
       const tile = entry[1];
       const origin = tile.toPixelPoint(scale);
@@ -146,7 +155,7 @@ export const GameOfLife = () => {
 
     // Draw grid lines
     context.lineWidth = 1;
-    context.strokeStyle = "#ddd";
+    context.strokeStyle = gridLineColor;
     context.beginPath();
     for (let x = offset.x % scale; x < width; x += scale) {
       context.moveTo(x, 0);

@@ -28,3 +28,10 @@
 .step-counter {
     min-width: 100px;
 }
+
+@media (prefers-color-scheme: dark) {
+    .wrapper {
+        background: #222;
+        color: white;
+    }
+}
