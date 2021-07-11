@@ -217,6 +217,7 @@ export const GameOfLife = () => {
   //
   const [tps, setTps] = useState<number>(5);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [steps, setSteps] = useState<number>(0);
   const currentTickRef = useRef<number>(0);
   const previousTickRef = useRef<number>(0);
 
@@ -245,6 +246,7 @@ export const GameOfLife = () => {
     }
 
     activeTilesRef.current = newTileMap;
+    setSteps((steps) => steps + 1);
   };
 
   const animationFrame = useCallback(
@@ -309,6 +311,7 @@ export const GameOfLife = () => {
           type="button"
           onClick={() => {
             activeTilesRef.current.clear();
+            setSteps(0);
           }}
         >
           Clear
@@ -318,7 +321,7 @@ export const GameOfLife = () => {
           <input
             type="range"
             min={1}
-            max={20}
+            max={60}
             step={1}
             value={tps}
             onChange={(event) => {
@@ -326,6 +329,7 @@ export const GameOfLife = () => {
             }}
           />
         </label>
+        <div>Steps: {steps}</div>
       </div>
     </div>
   );
