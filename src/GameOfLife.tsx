@@ -10,14 +10,42 @@ import "./GameOfLife.css";
 type PixelPoint = { x: number; y: number };
 type GridPoint = { gridX: number; gridY: number };
 
+class Tile {
+  static readonly size: number = 10;
+  x: number;
+  y: number;
+
+  constructor(x: number, y: number) {
+    this.x = x;
+    this.y = y;
+  }
+
+  get key() {
+    return `${this.x}-${this.y}`;
+  }
+
+  toPixelPoint(): PixelPoint {
+    return {
+      x: this.x * Tile.size,
+      y: this.y * Tile.size,
+    };
+  }
+
+  static fromPixelPoint(pixelPoint: PixelPoint) {
+    return new Tile(
+      (Math.floor(pixelPoint.x / this.size) * this.size) / this.size,
+      (Math.floor(pixelPoint.y / this.size) * this.size) / this.size
+    );
+  }
+}
+
 export const GameOfLife = () => {
   const size = { width: 500, height: 500 };
-  const tileSize = 10;
   const [fps, setFps] = useState(60);
   const [cursor, setCursor] = useState("auto");
   const offsetRef = useRef<PixelPoint>({ x: 0, y: 0 });
-  const tilesRef = useRef<Map<string, GridPoint>>(
-    new Map([["1-1", { gridX: 1, gridY: 1 }]])
+  const tilesRef = useRef<Map<string, Tile>>(
+    new Map([["1-1", new Tile(1, 1)]])
   );
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const requestIdRef = useRef<number>(0);
@@ -25,13 +53,6 @@ export const GameOfLife = () => {
   const isMouseDown = useRef<boolean>(false);
   const isSpaceDown = useRef<boolean>(false);
   const hasMovedGrid = useRef<boolean>(false);
-
-  const gridPointToPixelPoint = (gridPoint: GridPoint): PixelPoint => {
-    return {
-      x: gridPoint.gridX * tileSize,
-      y: gridPoint.gridY * tileSize,
-    };
-  };
 
   const renderFrame = useCallback(() => {
     if (canvasRef.current) {
@@ -49,13 +70,13 @@ export const GameOfLife = () => {
         context.lineWidth = 1;
         context.strokeStyle = "#ddd";
         context.beginPath();
-        for (let x = offset.x % tileSize; x < width; x += tileSize) {
+        for (let x = offset.x % Tile.size; x < width; x += Tile.size) {
           context.moveTo(x, 0);
           context.lineTo(x, height);
         }
         context.stroke();
         context.beginPath();
-        for (let y = offset.y % tileSize; y < width; y += tileSize) {
+        for (let y = offset.y % Tile.size; y < width; y += Tile.size) {
           context.moveTo(0, y);
           context.lineTo(width, y);
         }
@@ -64,10 +85,10 @@ export const GameOfLife = () => {
         // Draw tiles
         context.fillStyle = "#000000";
         for (let [_key, tile] of tiles.entries()) {
-          const origin = gridPointToPixelPoint(tile);
+          const origin = tile.toPixelPoint();
           const x = origin.x + offset.x;
           const y = origin.y + offset.y;
-          context.fillRect(x, y, tileSize, tileSize);
+          context.fillRect(x, y, Tile.size, Tile.size);
         }
       }
     }
@@ -123,17 +144,19 @@ export const GameOfLife = () => {
     };
   }, []);
 
-  const canvasClick: MouseEventHandler<HTMLCanvasElement> = useCallback(
+  const mouseClick: MouseEventHandler<HTMLCanvasElement> = useCallback(
     (event) => {
       if (!hasMovedGrid.current) {
         const pixelX = event.nativeEvent.offsetX - offsetRef.current.x;
         const pixelY = event.nativeEvent.offsetY - offsetRef.current.y;
 
-        const newTile = {
-          gridX: (Math.floor(pixelX / tileSize) * tileSize) / tileSize,
-          gridY: (Math.floor(pixelY / tileSize) * tileSize) / tileSize,
-        };
-        tilesRef.current.set(`${newTile.gridX}-${newTile.gridY}`, newTile);
+        const tile = Tile.fromPixelPoint({ x: pixelX, y: pixelY });
+
+        if (tilesRef.current.has(tile.key)) {
+          tilesRef.current.delete(tile.key);
+        } else {
+          tilesRef.current.set(tile.key, tile);
+        }
       }
     },
     []
@@ -152,11 +175,8 @@ export const GameOfLife = () => {
           const pixelX = event.nativeEvent.offsetX - offsetRef.current.x;
           const pixelY = event.nativeEvent.offsetY - offsetRef.current.y;
 
-          const newTile = {
-            gridX: (Math.floor(pixelX / tileSize) * tileSize) / tileSize,
-            gridY: (Math.floor(pixelY / tileSize) * tileSize) / tileSize,
-          };
-          tilesRef.current.set(`${newTile.gridX}-${newTile.gridY}`, newTile);
+          const tile = Tile.fromPixelPoint({ x: pixelX, y: pixelY });
+          tilesRef.current.set(tile.key, tile);
         }
       }
     },
@@ -170,7 +190,7 @@ export const GameOfLife = () => {
         style={{ cursor: cursor }}
         {...size}
         ref={canvasRef}
-        onClick={canvasClick}
+        onClick={mouseClick}
         onMouseDown={() => {
           hasMovedGrid.current = false;
           isMouseDown.current = true;
