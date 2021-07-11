@@ -70,6 +70,7 @@ export const GameOfLife = () => {
   // CANVAS AND RENDERING
   //
 
+  // Rendering state
   const [scale, setScale] = useState<number>(10);
   const [cursor, setCursor] = useState("auto");
   const offsetRef = useRef<PixelPoint>({ x: 0, y: 0 });
@@ -81,6 +82,12 @@ export const GameOfLife = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const currentFrameRef = useRef<number>(0);
   const previousFrameRef = useRef<number>(0);
+
+  // Game state
+  const [tps, setTps] = useState<number>(24);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [steps, setSteps] = useState<number>(0);
+  const previousTickRef = useRef<number>(0);
 
   const canvasOffsetToTile = useCallback(
     (offsetX: number, offsetY: number) => {
@@ -94,6 +101,19 @@ export const GameOfLife = () => {
     },
     [scale]
   );
+
+  const isTileActive = useCallback((tile: Tile) => {
+    return activeTilesRef.current.has(tile.key);
+  }, []);
+
+  const deactivateTile = useCallback((tile: Tile) => {
+    activeTilesRef.current.delete(tile.key);
+  }, []);
+
+  const activateTile = useCallback((tile: Tile) => {
+    activeTilesRef.current.set(tile.key, tile);
+    setSteps(0);
+  }, []);
 
   const renderGame = useCallback(() => {
     const context = canvasRef.current?.getContext("2d");
@@ -202,13 +222,13 @@ export const GameOfLife = () => {
         return;
       }
 
-      if (activeTilesRef.current.has(tile.key)) {
-        activeTilesRef.current.delete(tile.key);
+      if (isTileActive(tile)) {
+        deactivateTile(tile);
       } else {
-        activeTilesRef.current.set(tile.key, tile);
+        activateTile(tile);
       }
     },
-    [canvasOffsetToTile]
+    [canvasOffsetToTile, isTileActive, activateTile, deactivateTile]
   );
 
   const mouseMove: MouseEventHandler<HTMLCanvasElement> = useCallback(
@@ -227,12 +247,12 @@ export const GameOfLife = () => {
           );
 
           if (tile.key !== clickedTile.current?.key) {
-            activeTilesRef.current.set(tile.key, tile);
+            activateTile(tile);
           }
         }
       }
     },
-    [canvasOffsetToTile]
+    [canvasOffsetToTile, activateTile]
   );
 
   const mouseUp: MouseEventHandler<HTMLDivElement> = useCallback(() => {
@@ -246,10 +266,6 @@ export const GameOfLife = () => {
   //
   // GAME LOGIC
   //
-  const [tps, setTps] = useState<number>(24);
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [steps, setSteps] = useState<number>(0);
-  const previousTickRef = useRef<number>(0);
 
   const runGameRules = () => {
     const newTileMap = new Map<string, Tile>();
