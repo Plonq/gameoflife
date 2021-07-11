@@ -289,12 +289,15 @@ export const GameOfLife = () => {
   };
 
   const play = useCallback(() => {
-    tick();
-    ticker.current = window.setInterval(tick, 100);
+    if (ticker.current === 0) {
+      tick();
+      ticker.current = window.setInterval(tick, 100);
+    }
   }, []);
 
   const stop = useCallback(() => {
     window.clearInterval(ticker.current);
+    ticker.current = 0;
   }, []);
 
   return (

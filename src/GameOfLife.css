@@ -7,3 +7,14 @@
     border: 1px solid grey;
     margin: auto;
 }
+
+.controls {
+    display: flex;
+    justify-content: center;
+    height: 50px;
+    gap: 16px;
+}
+
+.controls > button {
+    padding: 0 16px;
+}
