@@ -67,11 +67,11 @@ class Tile {
 }
 
 export const GameOfLife = () => {
-  // Config
-  const size = { width: 500, height: 500 };
-  const [fps, setFps] = useState(60);
+  //
+  // CANVAS AND RENDERING
+  //
 
-  // State
+  const size = { width: 500, height: 500 };
   const [cursor, setCursor] = useState("auto");
   const offsetRef = useRef<PixelPoint>({ x: 0, y: 0 });
   const activeTilesRef = useRef<Map<string, Tile>>(new Map());
@@ -79,27 +79,15 @@ export const GameOfLife = () => {
   const isSpaceDown = useRef<boolean>(false);
   const hasMovedGrid = useRef<boolean>(false);
   const clickedTile = useRef<Tile | null>(null);
-  const [ticker, setTicker] = useState<number>(0);
-
-  // Render state
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const requestIdRef = useRef<number>(0);
-  const previousTimeRef = useRef<number>(0);
+  const currentFrameRef = useRef<number>(0);
+  const previousFrameRef = useRef<number>(0);
 
   const canvasOffsetToTile = (offsetX: number, offsetY: number) => {
     return Tile.fromPixelPoint({
       x: offsetX - offsetRef.current.x,
       y: offsetY - offsetRef.current.y,
     });
-  };
-
-  const addTileAt = (x: number, y: number) => {
-    const tile = new Tile(x, y);
-    activeTilesRef.current.set(tile.key, tile);
-  };
-
-  const removeTileAt = (x: number, y: number) => {
-    activeTilesRef.current.delete(new Tile(x, y).key);
   };
 
   const renderGame = useCallback(() => {
@@ -141,43 +129,6 @@ export const GameOfLife = () => {
       context.fillRect(x, y, Tile.size, Tile.size);
     }
   }, []);
-
-  // Render at speed of fps
-  const animationFrame = useCallback(
-    (time: number) => {
-      const deltaTime = time - previousTimeRef.current;
-      if (deltaTime >= 1000 / fps) {
-        renderGame();
-        previousTimeRef.current = time;
-      }
-      requestIdRef.current = requestAnimationFrame(animationFrame);
-    },
-    [fps, renderGame]
-  );
-
-  // Being animating
-  useEffect(() => {
-    requestIdRef.current = requestAnimationFrame(animationFrame);
-
-    addTileAt(30, 29);
-    addTileAt(30, 30);
-    addTileAt(30, 31);
-
-    // TEST CODE
-    // const tileMap = new Map<string, Tile>();
-    // const tile = new Tile(1, 1);
-    // tileMap.set(tile.key, tile);
-    // const tile2 = new Tile(0, 1);
-    // tileMap.set(tile2.key, tile2);
-    // const tile3 = new Tile(2, 1);
-    // tileMap.set(tile3.key, tile3);
-    // console.log(tile.countNeighbours(tileMap));
-    // END TEST CODE
-
-    return () => {
-      cancelAnimationFrame(requestIdRef.current);
-    };
-  }, [animationFrame]);
 
   // Keyboard event handlers
   useEffect(() => {
@@ -261,7 +212,15 @@ export const GameOfLife = () => {
     }
   }, []);
 
-  const tick = () => {
+  //
+  // GAME LOGIC
+  //
+  const [tps, setTps] = useState<number>(5);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const currentTickRef = useRef<number>(0);
+  const previousTickRef = useRef<number>(0);
+
+  const runGameRules = () => {
     const newTileMap = new Map<string, Tile>();
 
     for (let [key, tile] of activeTilesRef.current.entries()) {
@@ -288,20 +247,42 @@ export const GameOfLife = () => {
     activeTilesRef.current = newTileMap;
   };
 
-  const playpause = useCallback(() => {
-    if (ticker === 0) {
-      tick();
-      setTicker(window.setInterval(tick, 100));
-    } else {
-      window.clearInterval(ticker);
-      setTicker(0);
-    }
-  }, [ticker]);
+  const animationFrame = useCallback(
+    (time: number) => {
+      // Overall rendering
+      const frameDelta = time - previousFrameRef.current;
+      if (frameDelta >= 1000 / 60) {
+        renderGame();
+        previousFrameRef.current = time;
+      }
+      currentFrameRef.current = requestAnimationFrame(animationFrame);
 
-  const clear = useCallback(() => {
-    activeTilesRef.current.clear();
-  }, []);
+      // Game ticks
+      if (!isPlaying) {
+        return;
+      }
+      const tickDelta = time - previousTickRef.current;
+      if (tickDelta >= 1000 / tps) {
+        runGameRules();
+        previousTickRef.current = time;
+      }
+      currentTickRef.current = currentFrameRef.current;
+    },
+    [isPlaying, renderGame, tps]
+  );
 
+  // Being rendering
+  useEffect(() => {
+    currentFrameRef.current = requestAnimationFrame(animationFrame);
+
+    return () => {
+      cancelAnimationFrame(currentFrameRef.current);
+    };
+  }, [animationFrame]);
+
+  //
+  // VIEW
+  //
   return (
     <div className="wrapper" onMouseUp={mouseUp}>
       <canvas
@@ -313,15 +294,38 @@ export const GameOfLife = () => {
         onMouseMove={mouseMove}
       />
       <div className="controls">
-        <button type="button" onClick={playpause}>
-          {ticker === 0 ? "Play" : "Pause"}
+        <button
+          type="button"
+          onClick={() => {
+            setIsPlaying((isPlaying) => !isPlaying);
+          }}
+        >
+          {isPlaying ? "Pause" : "Play"}
         </button>
-        <button type="button" onClick={tick}>
+        <button type="button" onClick={runGameRules}>
           Step
         </button>
-        <button type="button" onClick={clear}>
+        <button
+          type="button"
+          onClick={() => {
+            activeTilesRef.current.clear();
+          }}
+        >
           Clear
         </button>
+        <label>
+          Speed:
+          <input
+            type="range"
+            min={1}
+            max={20}
+            step={1}
+            value={tps}
+            onChange={(event) => {
+              setTps(Number(event.target.value));
+            }}
+          />
+        </label>
       </div>
     </div>
   );
