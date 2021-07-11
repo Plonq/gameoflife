@@ -30,6 +30,34 @@ class Tile {
     };
   }
 
+  getNeighbourCoords(): { x: number; y: number }[] {
+    return [
+      { x: this.x - 1, y: this.y - 1 },
+      { x: this.x, y: this.y - 1 },
+      { x: this.x + 1, y: this.y - 1 },
+      { x: this.x - 1, y: this.y },
+      { x: this.x + 1, y: this.y },
+      { x: this.x - 1, y: this.y + 1 },
+      { x: this.x, y: this.y + 1 },
+      { x: this.x + 1, y: this.y + 1 },
+    ];
+  }
+
+  countLiveNeighbours(tileMap: Map<string, Tile>) {
+    const neighbourKeys = this.getNeighbourCoords().map(
+      ({ x, y }) => `${x}-${y}`
+    );
+
+    let count = 0;
+    for (let neighbourKey of neighbourKeys) {
+      if (tileMap.has(neighbourKey)) {
+        count += 1;
+      }
+    }
+
+    return count;
+  }
+
   static fromPixelPoint(pixelPoint: PixelPoint) {
     return new Tile(
       (Math.floor(pixelPoint.x / this.size) * this.size) / this.size,
@@ -46,13 +74,12 @@ export const GameOfLife = () => {
   // State
   const [cursor, setCursor] = useState("auto");
   const offsetRef = useRef<PixelPoint>({ x: 0, y: 0 });
-  const activeTilesRef = useRef<Map<string, Tile>>(
-    new Map([["1-1", new Tile(1, 1)]])
-  );
+  const activeTilesRef = useRef<Map<string, Tile>>(new Map());
   const isMouseDown = useRef<boolean>(false);
   const isSpaceDown = useRef<boolean>(false);
   const hasMovedGrid = useRef<boolean>(false);
   const clickedTile = useRef<Tile | null>(null);
+  const ticker = useRef<number>(0);
 
   // Render state
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -64,6 +91,15 @@ export const GameOfLife = () => {
       x: offsetX - offsetRef.current.x,
       y: offsetY - offsetRef.current.y,
     });
+  };
+
+  const addTileAt = (x: number, y: number) => {
+    const tile = new Tile(x, y);
+    activeTilesRef.current.set(tile.key, tile);
+  };
+
+  const removeTileAt = (x: number, y: number) => {
+    activeTilesRef.current.delete(new Tile(x, y).key);
   };
 
   const renderGame = useCallback(() => {
@@ -122,6 +158,22 @@ export const GameOfLife = () => {
   // Being animating
   useEffect(() => {
     requestIdRef.current = requestAnimationFrame(animationFrame);
+
+    addTileAt(30, 29);
+    addTileAt(30, 30);
+    addTileAt(30, 31);
+
+    // TEST CODE
+    // const tileMap = new Map<string, Tile>();
+    // const tile = new Tile(1, 1);
+    // tileMap.set(tile.key, tile);
+    // const tile2 = new Tile(0, 1);
+    // tileMap.set(tile2.key, tile2);
+    // const tile3 = new Tile(2, 1);
+    // tileMap.set(tile3.key, tile3);
+    // console.log(tile.countNeighbours(tileMap));
+    // END TEST CODE
+
     return () => {
       cancelAnimationFrame(requestIdRef.current);
     };
@@ -209,6 +261,45 @@ export const GameOfLife = () => {
     }
   }, []);
 
+  const tick = () => {
+    console.log("Tick");
+    // GAME LOGIC
+
+    const newTileMap = new Map<string, Tile>();
+
+    for (let [key, tile] of activeTilesRef.current.entries()) {
+      // Any live cell with two or three live neighbours survives.
+      const neighbourCount = tile.countLiveNeighbours(activeTilesRef.current);
+      if (neighbourCount >= 2 && neighbourCount <= 3) {
+        newTileMap.set(key, tile);
+      }
+
+      // Any dead cell with three live neighbours becomes a live cell.
+      for (let neighbour of tile.getNeighbourCoords()) {
+        // Is it dead?
+        const neighbourTile = new Tile(neighbour.x, neighbour.y);
+        if (!activeTilesRef.current.has(neighbourTile.key)) {
+          // Does it have 3 live neighbours?
+          if (neighbourTile.countLiveNeighbours(activeTilesRef.current) === 3) {
+            // Make it alive
+            newTileMap.set(neighbourTile.key, neighbourTile);
+          }
+        }
+      }
+    }
+
+    activeTilesRef.current = newTileMap;
+  };
+
+  const play = useCallback(() => {
+    tick();
+    ticker.current = window.setInterval(tick, 100);
+  }, []);
+
+  const stop = useCallback(() => {
+    window.clearInterval(ticker.current);
+  }, []);
+
   return (
     <div className="wrapper" onMouseUp={mouseUp}>
       <canvas
@@ -220,8 +311,14 @@ export const GameOfLife = () => {
         onMouseMove={mouseMove}
       />
       <div className="controls">
-        <button type="button" onClick={() => {}}>
+        <button type="button" onClick={play}>
           Play
+        </button>
+        <button type="button" onClick={stop}>
+          Stop
+        </button>
+        <button type="button" onClick={tick}>
+          Step
         </button>
       </div>
     </div>
