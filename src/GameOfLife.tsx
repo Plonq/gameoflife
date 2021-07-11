@@ -40,19 +40,24 @@ class Tile {
 }
 
 export const GameOfLife = () => {
+  // Config
   const size = { width: 500, height: 500 };
   const [fps, setFps] = useState(60);
+
+  // State
   const [cursor, setCursor] = useState("auto");
   const offsetRef = useRef<PixelPoint>({ x: 0, y: 0 });
   const tilesRef = useRef<Map<string, Tile>>(
     new Map([["1-1", new Tile(1, 1)]])
   );
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const requestIdRef = useRef<number>(0);
-  const previousTimeRef = useRef<number>(0);
   const isMouseDown = useRef<boolean>(false);
   const isSpaceDown = useRef<boolean>(false);
   const hasMovedGrid = useRef<boolean>(false);
+
+  // Render state
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const requestIdRef = useRef<number>(0);
+  const previousTimeRef = useRef<number>(0);
 
   const renderFrame = useCallback(() => {
     if (canvasRef.current) {
