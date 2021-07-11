@@ -14,6 +14,7 @@ export const GameOfLife = () => {
   const size = { width: 500, height: 500 };
   const tileSize = 10;
   const [fps, setFps] = useState(60);
+  const [cursor, setCursor] = useState("auto");
   const offsetRef = useRef<PixelPoint>({ x: 0, y: 0 });
   const tilesRef = useRef<Map<string, GridPoint>>(
     new Map([["1-1", { gridX: 1, gridY: 1 }]])
@@ -93,19 +94,25 @@ export const GameOfLife = () => {
 
   useEffect(() => {
     const keyDownHandler = (event: KeyboardEvent) => {
-      if (event.code === "Space") {
+      if (event.code === "Space" && !isSpaceDown.current) {
         isSpaceDown.current = true;
+        setCursor("grab");
       }
     };
     window.addEventListener("keydown", keyDownHandler);
 
     const keyUpHandler = () => {
       isSpaceDown.current = false;
+      setCursor("auto");
     };
     window.addEventListener("keyup", keyUpHandler);
 
     const mouseUpHandler = () => {
       isMouseDown.current = false;
+
+      if (isSpaceDown.current) {
+        setCursor("grab");
+      }
     };
     window.addEventListener("mouseup", mouseUpHandler);
 
@@ -160,12 +167,16 @@ export const GameOfLife = () => {
     <div className="wrapper">
       <canvas
         className="canvas"
+        style={{ cursor: cursor }}
         {...size}
         ref={canvasRef}
         onClick={canvasClick}
         onMouseDown={() => {
           hasMovedGrid.current = false;
           isMouseDown.current = true;
+          if (isSpaceDown.current) {
+            setCursor("grabbing");
+          }
         }}
         onMouseMove={mouseMove}
       />
