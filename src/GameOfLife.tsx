@@ -10,7 +10,6 @@ import "./GameOfLife.css";
 type PixelPoint = { x: number; y: number };
 
 class Tile {
-  static readonly size: number = 10;
   x: number;
   y: number;
 
@@ -23,10 +22,10 @@ class Tile {
     return `${this.x}-${this.y}`;
   }
 
-  toPixelPoint(): PixelPoint {
+  toPixelPoint(scale: number): PixelPoint {
     return {
-      x: this.x * Tile.size,
-      y: this.y * Tile.size,
+      x: this.x * scale,
+      y: this.y * scale,
     };
   }
 
@@ -58,10 +57,10 @@ class Tile {
     return count;
   }
 
-  static fromPixelPoint(pixelPoint: PixelPoint) {
+  static fromPixelPoint(pixelPoint: PixelPoint, scale: number) {
     return new Tile(
-      (Math.floor(pixelPoint.x / this.size) * this.size) / this.size,
-      (Math.floor(pixelPoint.y / this.size) * this.size) / this.size
+      (Math.floor(pixelPoint.x / scale) * scale) / scale,
+      (Math.floor(pixelPoint.y / scale) * scale) / scale
     );
   }
 }
@@ -71,6 +70,7 @@ export const GameOfLife = () => {
   // CANVAS AND RENDERING
   //
 
+  const [scale, setScale] = useState<number>(10);
   const [cursor, setCursor] = useState("auto");
   const offsetRef = useRef<PixelPoint>({ x: 0, y: 0 });
   const activeTilesRef = useRef<Map<string, Tile>>(new Map());
@@ -82,12 +82,18 @@ export const GameOfLife = () => {
   const currentFrameRef = useRef<number>(0);
   const previousFrameRef = useRef<number>(0);
 
-  const canvasOffsetToTile = (offsetX: number, offsetY: number) => {
-    return Tile.fromPixelPoint({
-      x: offsetX - offsetRef.current.x,
-      y: offsetY - offsetRef.current.y,
-    });
-  };
+  const canvasOffsetToTile = useCallback(
+    (offsetX: number, offsetY: number) => {
+      return Tile.fromPixelPoint(
+        {
+          x: offsetX - offsetRef.current.x,
+          y: offsetY - offsetRef.current.y,
+        },
+        scale
+      );
+    },
+    [scale]
+  );
 
   const renderGame = useCallback(() => {
     const context = canvasRef.current?.getContext("2d");
@@ -110,13 +116,13 @@ export const GameOfLife = () => {
     context.lineWidth = 1;
     context.strokeStyle = "#ddd";
     context.beginPath();
-    for (let x = offset.x % Tile.size; x < width; x += Tile.size) {
+    for (let x = offset.x % scale; x < width; x += scale) {
       context.moveTo(x, 0);
       context.lineTo(x, height);
     }
     context.stroke();
     context.beginPath();
-    for (let y = offset.y % Tile.size; y < height; y += Tile.size) {
+    for (let y = offset.y % scale; y < height; y += scale) {
       context.moveTo(0, y);
       context.lineTo(width, y);
     }
@@ -126,12 +132,12 @@ export const GameOfLife = () => {
     context.fillStyle = "#000000";
     for (let entry of tiles.entries()) {
       const tile = entry[1];
-      const origin = tile.toPixelPoint();
+      const origin = tile.toPixelPoint(scale);
       const x = origin.x + offset.x;
       const y = origin.y + offset.y;
-      context.fillRect(x, y, Tile.size, Tile.size);
+      context.fillRect(x, y, scale, scale);
     }
-  }, []);
+  }, [scale]);
 
   // Keyboard event handlers
   useEffect(() => {
@@ -180,7 +186,7 @@ export const GameOfLife = () => {
         activeTilesRef.current.set(tile.key, tile);
       }
     },
-    []
+    [canvasOffsetToTile]
   );
 
   const mouseMove: MouseEventHandler<HTMLCanvasElement> = useCallback(
@@ -204,7 +210,7 @@ export const GameOfLife = () => {
         }
       }
     },
-    []
+    [canvasOffsetToTile]
   );
 
   const mouseUp: MouseEventHandler<HTMLDivElement> = useCallback(() => {
@@ -323,11 +329,24 @@ export const GameOfLife = () => {
           <input
             type="range"
             min={1}
-            max={60}
+            max={100}
             step={1}
             value={tps}
             onChange={(event) => {
               setTps(Number(event.target.value));
+            }}
+          />
+        </label>
+        <label>
+          Scale:
+          <input
+            type="range"
+            min={2}
+            max={30}
+            step={1}
+            value={scale}
+            onChange={(event) => {
+              setScale(Number(event.target.value));
             }}
           />
         </label>
