@@ -58,64 +58,64 @@ export const GameOfLife = () => {
   const requestIdRef = useRef<number>(0);
   const previousTimeRef = useRef<number>(0);
 
-  const renderFrame = useCallback(() => {
-    if (canvasRef.current) {
-      const context = canvasRef.current.getContext("2d");
-      if (context) {
-        const { current: offset } = offsetRef;
-        const { current: tiles } = tilesRef;
-        const { width, height } = context.canvas;
+  const renderGame = useCallback(() => {
+    const context = canvasRef.current?.getContext("2d");
+    if (!context) {
+      return;
+    }
 
-        // Clear canvas
-        context.fillStyle = "#ffffff";
-        context.fillRect(0, 0, width, height);
+    const { current: offset } = offsetRef;
+    const { current: tiles } = tilesRef;
+    const { width, height } = context.canvas;
 
-        // Draw grid lines
-        context.lineWidth = 1;
-        context.strokeStyle = "#ddd";
-        context.beginPath();
-        for (let x = offset.x % Tile.size; x < width; x += Tile.size) {
-          context.moveTo(x, 0);
-          context.lineTo(x, height);
-        }
-        context.stroke();
-        context.beginPath();
-        for (let y = offset.y % Tile.size; y < width; y += Tile.size) {
-          context.moveTo(0, y);
-          context.lineTo(width, y);
-        }
-        context.stroke();
+    // Clear canvas
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, width, height);
 
-        // Draw tiles
-        context.fillStyle = "#000000";
-        for (let [_key, tile] of tiles.entries()) {
-          const origin = tile.toPixelPoint();
-          const x = origin.x + offset.x;
-          const y = origin.y + offset.y;
-          context.fillRect(x, y, Tile.size, Tile.size);
-        }
-      }
+    // Draw grid lines
+    context.lineWidth = 1;
+    context.strokeStyle = "#ddd";
+    context.beginPath();
+    for (let x = offset.x % Tile.size; x < width; x += Tile.size) {
+      context.moveTo(x, 0);
+      context.lineTo(x, height);
+    }
+    context.stroke();
+    context.beginPath();
+    for (let y = offset.y % Tile.size; y < width; y += Tile.size) {
+      context.moveTo(0, y);
+      context.lineTo(width, y);
+    }
+    context.stroke();
+
+    // Draw tiles
+    context.fillStyle = "#000000";
+    for (let [_key, tile] of tiles.entries()) {
+      const origin = tile.toPixelPoint();
+      const x = origin.x + offset.x;
+      const y = origin.y + offset.y;
+      context.fillRect(x, y, Tile.size, Tile.size);
     }
   }, []);
 
-  const tick = useCallback(
+  const animationFrame = useCallback(
     (time: number) => {
       const deltaTime = time - previousTimeRef.current;
       if (deltaTime >= 1000 / fps) {
-        renderFrame();
+        renderGame();
         previousTimeRef.current = time;
       }
-      requestIdRef.current = requestAnimationFrame(tick);
+      requestIdRef.current = requestAnimationFrame(animationFrame);
     },
-    [fps, renderFrame]
+    [fps, renderGame]
   );
 
   useEffect(() => {
-    requestIdRef.current = requestAnimationFrame(tick);
+    requestIdRef.current = requestAnimationFrame(animationFrame);
     return () => {
       cancelAnimationFrame(requestIdRef.current);
     };
-  }, [tick]);
+  }, [animationFrame]);
 
   useEffect(() => {
     const keyDownHandler = (event: KeyboardEvent) => {
@@ -148,23 +148,20 @@ export const GameOfLife = () => {
     };
   }, []);
 
-  const mouseClick: MouseEventHandler<HTMLCanvasElement> = useCallback(
-    (event) => {
-      if (!hasMovedGrid.current) {
-        const pixelX = event.nativeEvent.offsetX - offsetRef.current.x;
-        const pixelY = event.nativeEvent.offsetY - offsetRef.current.y;
+  const mouseUp: MouseEventHandler<HTMLCanvasElement> = useCallback((event) => {
+    if (!hasMovedGrid.current) {
+      const pixelX = event.nativeEvent.offsetX - offsetRef.current.x;
+      const pixelY = event.nativeEvent.offsetY - offsetRef.current.y;
 
-        const tile = Tile.fromPixelPoint({ x: pixelX, y: pixelY });
+      const tile = Tile.fromPixelPoint({ x: pixelX, y: pixelY });
 
-        if (tilesRef.current.has(tile.key)) {
-          tilesRef.current.delete(tile.key);
-        } else {
-          tilesRef.current.set(tile.key, tile);
-        }
+      if (tilesRef.current.has(tile.key)) {
+        tilesRef.current.delete(tile.key);
+      } else {
+        tilesRef.current.set(tile.key, tile);
       }
-    },
-    []
-  );
+    }
+  }, []);
 
   const mouseMove: MouseEventHandler<HTMLCanvasElement> = useCallback(
     (event) => {
@@ -194,16 +191,21 @@ export const GameOfLife = () => {
         style={{ cursor: cursor }}
         {...size}
         ref={canvasRef}
-        onClick={mouseClick}
-        onMouseDown={() => {
+        onMouseDown={(event) => {
           hasMovedGrid.current = false;
           isMouseDown.current = true;
           if (isSpaceDown.current) {
             setCursor("grabbing");
           }
         }}
+        onMouseUp={mouseUp}
         onMouseMove={mouseMove}
       />
+      <div className="controls">
+        <button type="button" onClick={() => {}}>
+          Play
+        </button>
+      </div>
     </div>
   );
 };
