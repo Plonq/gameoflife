@@ -79,7 +79,7 @@ export const GameOfLife = () => {
   const isSpaceDown = useRef<boolean>(false);
   const hasMovedGrid = useRef<boolean>(false);
   const clickedTile = useRef<Tile | null>(null);
-  const ticker = useRef<number>(0);
+  const [ticker, setTicker] = useState<number>(0);
 
   // Render state
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -288,16 +288,18 @@ export const GameOfLife = () => {
     activeTilesRef.current = newTileMap;
   };
 
-  const play = useCallback(() => {
-    if (ticker.current === 0) {
+  const playpause = useCallback(() => {
+    if (ticker === 0) {
       tick();
-      ticker.current = window.setInterval(tick, 100);
+      setTicker(window.setInterval(tick, 100));
+    } else {
+      window.clearInterval(ticker);
+      setTicker(0);
     }
-  }, []);
+  }, [ticker]);
 
-  const stop = useCallback(() => {
-    window.clearInterval(ticker.current);
-    ticker.current = 0;
+  const clear = useCallback(() => {
+    activeTilesRef.current.clear();
   }, []);
 
   return (
@@ -311,14 +313,14 @@ export const GameOfLife = () => {
         onMouseMove={mouseMove}
       />
       <div className="controls">
-        <button type="button" onClick={play}>
-          Play
-        </button>
-        <button type="button" onClick={stop}>
-          Stop
+        <button type="button" onClick={playpause}>
+          {ticker === 0 ? "Play" : "Pause"}
         </button>
         <button type="button" onClick={tick}>
           Step
+        </button>
+        <button type="button" onClick={clear}>
+          Clear
         </button>
       </div>
     </div>
