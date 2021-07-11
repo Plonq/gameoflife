@@ -139,6 +139,28 @@ export const GameOfLife = () => {
     }
   }, [scale]);
 
+  const animationFrame = useCallback(
+    (time: number) => {
+      const frameDelta = time - previousFrameRef.current;
+      if (frameDelta >= 1000 / 60) {
+        renderGame();
+        previousFrameRef.current = time;
+      }
+
+      currentFrameRef.current = requestAnimationFrame(animationFrame);
+    },
+    [renderGame]
+  );
+
+  // Being rendering
+  useEffect(() => {
+    currentFrameRef.current = requestAnimationFrame(animationFrame);
+
+    return () => {
+      cancelAnimationFrame(currentFrameRef.current);
+    };
+  }, [animationFrame]);
+
   // Keyboard event handlers
   useEffect(() => {
     const keyDownHandler = (event: KeyboardEvent) => {
@@ -227,7 +249,6 @@ export const GameOfLife = () => {
   const [tps, setTps] = useState<number>(24);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [steps, setSteps] = useState<number>(0);
-  const currentTickRef = useRef<number>(0);
   const previousTickRef = useRef<number>(0);
 
   const runGameRules = () => {
@@ -258,38 +279,18 @@ export const GameOfLife = () => {
     setSteps((steps) => steps + 1);
   };
 
-  const animationFrame = useCallback(
-    (time: number) => {
-      // Overall rendering
-      const frameDelta = time - previousFrameRef.current;
-      if (frameDelta >= 1000 / 60) {
-        renderGame();
-        previousFrameRef.current = time;
-      }
-      currentFrameRef.current = requestAnimationFrame(animationFrame);
-
-      // Game ticks
-      if (!isPlaying) {
-        return;
-      }
-      const tickDelta = time - previousTickRef.current;
-      if (tickDelta >= 1000 / tps) {
-        runGameRules();
-        previousTickRef.current = time;
-      }
-      currentTickRef.current = currentFrameRef.current;
-    },
-    [isPlaying, renderGame, tps]
-  );
-
-  // Being rendering
+  // Game ticks
   useEffect(() => {
-    currentFrameRef.current = requestAnimationFrame(animationFrame);
+    let interval = 0;
+    if (isPlaying) {
+      previousTickRef.current = Date.now();
+      interval = window.setInterval(runGameRules, 1000 / tps);
+    }
 
     return () => {
-      cancelAnimationFrame(currentFrameRef.current);
+      window.clearInterval(interval);
     };
-  }, [animationFrame]);
+  }, [tps, isPlaying]);
 
   //
   // VIEW
@@ -329,7 +330,7 @@ export const GameOfLife = () => {
           <input
             type="range"
             min={1}
-            max={100}
+            max={200}
             step={1}
             value={tps}
             onChange={(event) => {
