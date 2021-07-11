@@ -168,7 +168,7 @@ export const GameOfLife = () => {
       context.lineTo(width, y);
     }
     context.stroke();
-  }, [scale]);
+  }, [scale, gridLineColor, gridTileColor, gridBgColor]);
 
   const animationFrame = useCallback(
     (time: number) => {
