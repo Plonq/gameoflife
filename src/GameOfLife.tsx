@@ -71,7 +71,6 @@ export const GameOfLife = () => {
   // CANVAS AND RENDERING
   //
 
-  const size = { width: 500, height: 500 };
   const [cursor, setCursor] = useState("auto");
   const offsetRef = useRef<PixelPoint>({ x: 0, y: 0 });
   const activeTilesRef = useRef<Map<string, Tile>>(new Map());
@@ -96,6 +95,9 @@ export const GameOfLife = () => {
       return;
     }
 
+    context.canvas.width = window.innerWidth - 24;
+    context.canvas.height = window.innerHeight - 200;
+
     const { current: offset } = offsetRef;
     const { current: tiles } = activeTilesRef;
     const { width, height } = context.canvas;
@@ -114,7 +116,7 @@ export const GameOfLife = () => {
     }
     context.stroke();
     context.beginPath();
-    for (let y = offset.y % Tile.size; y < width; y += Tile.size) {
+    for (let y = offset.y % Tile.size; y < height; y += Tile.size) {
       context.moveTo(0, y);
       context.lineTo(width, y);
     }
@@ -215,7 +217,7 @@ export const GameOfLife = () => {
   //
   // GAME LOGIC
   //
-  const [tps, setTps] = useState<number>(5);
+  const [tps, setTps] = useState<number>(24);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [steps, setSteps] = useState<number>(0);
   const currentTickRef = useRef<number>(0);
@@ -290,7 +292,6 @@ export const GameOfLife = () => {
       <canvas
         className="canvas"
         style={{ cursor: cursor }}
-        {...size}
         ref={canvasRef}
         onMouseDown={mouseDown}
         onMouseMove={mouseMove}
