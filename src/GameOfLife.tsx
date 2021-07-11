@@ -79,6 +79,7 @@ export const GameOfLife = () => {
   const isSpaceDown = useRef<boolean>(false);
   const hasMovedGrid = useRef<boolean>(false);
   const clickedTile = useRef<Tile | null>(null);
+  const drawType = useRef<"draw" | "erase">("draw");
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const currentFrameRef = useRef<number>(0);
   const previousFrameRef = useRef<number>(0);
@@ -224,8 +225,10 @@ export const GameOfLife = () => {
       }
 
       if (isTileActive(tile)) {
+        drawType.current = "erase";
         deactivateTile(tile);
       } else {
+        drawType.current = "draw";
         activateTile(tile);
       }
     },
@@ -248,12 +251,17 @@ export const GameOfLife = () => {
           );
 
           if (tile.key !== clickedTile.current?.key) {
-            activateTile(tile);
+            if (drawType.current === "draw") {
+              activateTile(tile);
+            }
+            if (drawType.current === "erase") {
+              deactivateTile(tile);
+            }
           }
         }
       }
     },
-    [canvasOffsetToTile, activateTile]
+    [canvasOffsetToTile, activateTile, deactivateTile]
   );
 
   const mouseUp: MouseEventHandler<HTMLDivElement> = useCallback(() => {
