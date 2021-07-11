@@ -124,7 +124,8 @@ export const GameOfLife = () => {
 
     // Draw tiles
     context.fillStyle = "#000000";
-    for (let [_key, tile] of tiles.entries()) {
+    for (let entry of tiles.entries()) {
+      const tile = entry[1];
       const origin = tile.toPixelPoint();
       const x = origin.x + offset.x;
       const y = origin.y + offset.y;
@@ -206,7 +207,7 @@ export const GameOfLife = () => {
     []
   );
 
-  const mouseUp: MouseEventHandler<HTMLDivElement> = useCallback((event) => {
+  const mouseUp: MouseEventHandler<HTMLDivElement> = useCallback(() => {
     isMouseDown.current = false;
 
     if (isSpaceDown.current) {
