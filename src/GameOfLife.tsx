@@ -46,17 +46,25 @@ export const GameOfLife = () => {
   // State
   const [cursor, setCursor] = useState("auto");
   const offsetRef = useRef<PixelPoint>({ x: 0, y: 0 });
-  const tilesRef = useRef<Map<string, Tile>>(
+  const activeTilesRef = useRef<Map<string, Tile>>(
     new Map([["1-1", new Tile(1, 1)]])
   );
   const isMouseDown = useRef<boolean>(false);
   const isSpaceDown = useRef<boolean>(false);
   const hasMovedGrid = useRef<boolean>(false);
+  const clickedTile = useRef<Tile | null>(null);
 
   // Render state
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const requestIdRef = useRef<number>(0);
   const previousTimeRef = useRef<number>(0);
+
+  const canvasOffsetToTile = (offsetX: number, offsetY: number) => {
+    return Tile.fromPixelPoint({
+      x: offsetX - offsetRef.current.x,
+      y: offsetY - offsetRef.current.y,
+    });
+  };
 
   const renderGame = useCallback(() => {
     const context = canvasRef.current?.getContext("2d");
@@ -65,7 +73,7 @@ export const GameOfLife = () => {
     }
 
     const { current: offset } = offsetRef;
-    const { current: tiles } = tilesRef;
+    const { current: tiles } = activeTilesRef;
     const { width, height } = context.canvas;
 
     // Clear canvas
@@ -98,6 +106,7 @@ export const GameOfLife = () => {
     }
   }, []);
 
+  // Render at speed of fps
   const animationFrame = useCallback(
     (time: number) => {
       const deltaTime = time - previousTimeRef.current;
@@ -110,6 +119,7 @@ export const GameOfLife = () => {
     [fps, renderGame]
   );
 
+  // Being animating
   useEffect(() => {
     requestIdRef.current = requestAnimationFrame(animationFrame);
     return () => {
@@ -117,6 +127,7 @@ export const GameOfLife = () => {
     };
   }, [animationFrame]);
 
+  // Keyboard event handlers
   useEffect(() => {
     const keyDownHandler = (event: KeyboardEvent) => {
       if (event.code === "Space" && !isSpaceDown.current) {
@@ -132,36 +143,39 @@ export const GameOfLife = () => {
     };
     window.addEventListener("keyup", keyUpHandler);
 
-    const mouseUpHandler = () => {
-      isMouseDown.current = false;
-
-      if (isSpaceDown.current) {
-        setCursor("grab");
-      }
-    };
-    window.addEventListener("mouseup", mouseUpHandler);
-
     return () => {
       window.removeEventListener("keydown", keyDownHandler);
       window.removeEventListener("keyup", keyUpHandler);
-      window.removeEventListener("mouseup", mouseUpHandler);
     };
   }, []);
 
-  const mouseUp: MouseEventHandler<HTMLCanvasElement> = useCallback((event) => {
-    if (!hasMovedGrid.current) {
-      const pixelX = event.nativeEvent.offsetX - offsetRef.current.x;
-      const pixelY = event.nativeEvent.offsetY - offsetRef.current.y;
-
-      const tile = Tile.fromPixelPoint({ x: pixelX, y: pixelY });
-
-      if (tilesRef.current.has(tile.key)) {
-        tilesRef.current.delete(tile.key);
-      } else {
-        tilesRef.current.set(tile.key, tile);
+  const mouseDown: MouseEventHandler<HTMLCanvasElement> = useCallback(
+    (event) => {
+      // hasMovedGrid.current = false;
+      isMouseDown.current = true;
+      if (isSpaceDown.current) {
+        setCursor("grabbing");
       }
-    }
-  }, []);
+
+      const tile = canvasOffsetToTile(
+        event.nativeEvent.offsetX,
+        event.nativeEvent.offsetY
+      );
+
+      clickedTile.current = tile;
+
+      if (isSpaceDown.current) {
+        return;
+      }
+
+      if (activeTilesRef.current.has(tile.key)) {
+        activeTilesRef.current.delete(tile.key);
+      } else {
+        activeTilesRef.current.set(tile.key, tile);
+      }
+    },
+    []
+  );
 
   const mouseMove: MouseEventHandler<HTMLCanvasElement> = useCallback(
     (event) => {
@@ -173,32 +187,36 @@ export const GameOfLife = () => {
           hasMovedGrid.current = true;
         } else {
           // "Paint"
-          const pixelX = event.nativeEvent.offsetX - offsetRef.current.x;
-          const pixelY = event.nativeEvent.offsetY - offsetRef.current.y;
+          const tile = canvasOffsetToTile(
+            event.nativeEvent.offsetX,
+            event.nativeEvent.offsetY
+          );
 
-          const tile = Tile.fromPixelPoint({ x: pixelX, y: pixelY });
-          tilesRef.current.set(tile.key, tile);
+          if (tile.key !== clickedTile.current?.key) {
+            activeTilesRef.current.set(tile.key, tile);
+          }
         }
       }
     },
     []
   );
 
+  const mouseUp: MouseEventHandler<HTMLDivElement> = useCallback((event) => {
+    isMouseDown.current = false;
+
+    if (isSpaceDown.current) {
+      setCursor("grab");
+    }
+  }, []);
+
   return (
-    <div className="wrapper">
+    <div className="wrapper" onMouseUp={mouseUp}>
       <canvas
         className="canvas"
         style={{ cursor: cursor }}
         {...size}
         ref={canvasRef}
-        onMouseDown={(event) => {
-          hasMovedGrid.current = false;
-          isMouseDown.current = true;
-          if (isSpaceDown.current) {
-            setCursor("grabbing");
-          }
-        }}
-        onMouseUp={mouseUp}
+        onMouseDown={mouseDown}
         onMouseMove={mouseMove}
       />
       <div className="controls">
