@@ -133,6 +133,16 @@ export const GameOfLife = () => {
     context.fillStyle = "#ffffff";
     context.fillRect(0, 0, width, height);
 
+    // Draw tiles
+    context.fillStyle = "#000000";
+    for (let entry of tiles.entries()) {
+      const tile = entry[1];
+      const origin = tile.toPixelPoint(scale);
+      const x = origin.x + offset.x;
+      const y = origin.y + offset.y;
+      context.fillRect(x, y, scale, scale);
+    }
+
     // Draw grid lines
     context.lineWidth = 1;
     context.strokeStyle = "#ddd";
@@ -148,16 +158,6 @@ export const GameOfLife = () => {
       context.lineTo(width, y);
     }
     context.stroke();
-
-    // Draw tiles
-    context.fillStyle = "#000000";
-    for (let entry of tiles.entries()) {
-      const tile = entry[1];
-      const origin = tile.toPixelPoint(scale);
-      const x = origin.x + offset.x;
-      const y = origin.y + offset.y;
-      context.fillRect(x, y, scale, scale);
-    }
   }, [scale]);
 
   const animationFrame = useCallback(
