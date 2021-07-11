@@ -262,9 +262,6 @@ export const GameOfLife = () => {
   }, []);
 
   const tick = () => {
-    console.log("Tick");
-    // GAME LOGIC
-
     const newTileMap = new Map<string, Tile>();
 
     for (let [key, tile] of activeTilesRef.current.entries()) {
@@ -276,8 +273,8 @@ export const GameOfLife = () => {
 
       // Any dead cell with three live neighbours becomes a live cell.
       for (let neighbour of tile.getNeighbourCoords()) {
-        // Is it dead?
         const neighbourTile = new Tile(neighbour.x, neighbour.y);
+        // Is it dead?
         if (!activeTilesRef.current.has(neighbourTile.key)) {
           // Does it have 3 live neighbours?
           if (neighbourTile.countLiveNeighbours(activeTilesRef.current) === 3) {
