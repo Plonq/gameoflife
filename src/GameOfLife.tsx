@@ -121,6 +121,7 @@ export const GameOfLife = () => {
       return;
     }
 
+    // Responsive resizing
     context.canvas.width = window.innerWidth - 24;
     context.canvas.height = window.innerHeight - 200;
 
@@ -341,6 +342,8 @@ export const GameOfLife = () => {
         >
           Clear
         </button>
+      </div>
+      <div className="controls">
         <label>
           Speed:
           <input
@@ -367,7 +370,7 @@ export const GameOfLife = () => {
             }}
           />
         </label>
-        <div>Steps: {steps}</div>
+        <div className="step-counter">Steps: {steps}</div>
       </div>
     </div>
   );
