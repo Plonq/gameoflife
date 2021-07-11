@@ -8,7 +8,6 @@ import React, {
 import "./GameOfLife.css";
 
 type PixelPoint = { x: number; y: number };
-type GridPoint = { gridX: number; gridY: number };
 
 class Tile {
   static readonly size: number = 10;
