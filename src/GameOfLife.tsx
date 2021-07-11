@@ -322,6 +322,7 @@ export const GameOfLife = () => {
   //
   return (
     <div className="wrapper" onMouseUp={mouseUp}>
+      <h1 className="title">Conway's Game of Life - Plonq edition</h1>
       <canvas
         className="canvas"
         style={{ cursor: cursor }}

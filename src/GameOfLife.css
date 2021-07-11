@@ -3,6 +3,11 @@
     display: grid;
 }
 
+.title {
+    text-align: center;
+    margin: 8px 0 8px;
+}
+
 .canvas {
     border: 1px solid grey;
     margin: auto;
